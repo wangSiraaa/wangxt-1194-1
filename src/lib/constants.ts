@@ -1,4 +1,11 @@
-import type { ProgramStatus, Role, AppearanceGrade, WeldStatus, BatchStatus } from '../../shared/types';
+import {
+  ROLE_OPERATOR_MAP,
+  type ProgramStatus,
+  type Role,
+  type AppearanceGrade,
+  type WeldStatus,
+  type BatchStatus,
+} from '../../shared/types';
 
 export const ROLES: { key: Role; label: string; short: string; desc: string }[] = [
   { key: 'process_engineer', label: '工艺工程师', short: '工艺', desc: '提交程序版本 · 发布 · 量产标记' },
@@ -6,11 +13,7 @@ export const ROLES: { key: Role; label: string; short: string; desc: string }[] 
   { key: 'quality_engineer', label: '质量工程师', short: '质量', desc: '录入拉力与外观检测结果' },
 ];
 
-export const ROLE_NAME: Record<Role, string> = {
-  process_engineer: '李工',
-  line_leader: '张班长',
-  quality_engineer: '陈质检',
-};
+export const ROLE_OPERATOR: Record<Role, string> = ROLE_OPERATOR_MAP;
 
 export interface StatusMeta {
   label: string;

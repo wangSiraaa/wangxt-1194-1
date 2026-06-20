@@ -22,7 +22,7 @@ const NAV = [
 ];
 
 export default function Layout() {
-  const { role, setRole, operator } = useAppStore();
+  const { role, setRole, operatorName } = useAppStore();
   return (
     <div className="flex h-full">
       <aside className="flex w-60 flex-shrink-0 flex-col border-r border-steel-800 bg-steel-950/70">
@@ -86,7 +86,7 @@ export default function Layout() {
             })}
           </div>
           <div className="mt-2 truncate px-1 text-[11px] text-zinc-500">
-            操作人:<span className="text-zinc-300">{operator}</span>
+            操作人:<span className="text-zinc-300">{operatorName}</span>
           </div>
         </div>
       </aside>

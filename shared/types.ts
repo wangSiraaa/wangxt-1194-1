@@ -16,6 +16,19 @@ export type QualityResultValue = 'qualified' | 'unqualified';
 
 export type Role = 'process_engineer' | 'line_leader' | 'quality_engineer';
 
+export const ROLE_OPERATOR_MAP: Record<Role, string> = {
+  process_engineer: '李工',
+  line_leader: '张班长',
+  quality_engineer: '陈质检',
+};
+
+export function resolveOperatorFromRole(roleKey: string | undefined): string {
+  if (!roleKey) return '系统';
+  const mapped = (ROLE_OPERATOR_MAP as Record<string, string>)[roleKey];
+  if (mapped) return mapped;
+  return roleKey;
+}
+
 export interface WeldingProgram {
   id: number;
   program_code: string;

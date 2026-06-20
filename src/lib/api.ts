@@ -4,8 +4,8 @@ import type { ProgramStatus, ProgramProgress } from '../../shared/types';
 const BASE = '/api';
 
 function authHeaders(): Record<string, string> {
-  const operator = useAppStore.getState().operator;
-  return { 'x-operator': operator };
+  const { role, operatorName } = useAppStore.getState();
+  return { 'x-operator': role, 'x-operator-name': encodeURIComponent(operatorName) };
 }
 
 async function request<T = any>(

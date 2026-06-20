@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import type { Role } from '../../shared/types';
-import { ROLE_NAME } from '../lib/constants';
+import { ROLE_OPERATOR } from '../lib/constants';
 
 interface AppState {
   role: Role;
-  operator: string;
+  operatorName: string;
   toast: { id: number; type: 'success' | 'error' | 'info'; msg: string } | null;
   setRole: (role: Role) => void;
   showToast: (type: 'success' | 'error' | 'info', msg: string) => void;
@@ -13,9 +13,9 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set) => ({
   role: 'process_engineer',
-  operator: ROLE_NAME['process_engineer'],
+  operatorName: ROLE_OPERATOR['process_engineer'],
   toast: null,
-  setRole: (role) => set({ role, operator: ROLE_NAME[role] }),
+  setRole: (role) => set({ role, operatorName: ROLE_OPERATOR[role] }),
   showToast: (type, msg) =>
     set({ toast: { id: Date.now(), type, msg } }),
   clearToast: () => set({ toast: null }),

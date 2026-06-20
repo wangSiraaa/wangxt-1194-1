@@ -2,11 +2,21 @@ import { Router, type Request, type Response } from 'express';
 import db from '../db.js';
 import { recomputeProgramStatus } from '../services/ruleService.js';
 import type { TrialWeld } from '../../shared/types.js';
+import { resolveOperatorFromRole } from '../../shared/types.js';
 
 const router = Router();
 
 function operator(req: Request): string {
-  return (req.headers['x-operator'] as string) || '系统';
+  const roleKey = req.headers['x-operator'] as string | undefined;
+  const nameHeader = req.headers['x-operator-name'] as string | undefined;
+  if (nameHeader) {
+    try {
+      return decodeURIComponent(nameHeader);
+    } catch {
+      // fallthrough
+    }
+  }
+  return resolveOperatorFromRole(roleKey);
 }
 
 router.get('/', (req: Request, res: Response): void => {
