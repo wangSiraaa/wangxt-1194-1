@@ -1,4 +1,5 @@
 import { useAppStore } from '../store/useAppStore';
+import type { ProgramStatus, ProgramProgress } from '../../shared/types';
 
 const BASE = '/api';
 
@@ -32,11 +33,11 @@ export interface ProgramListItem {
   version: string;
   name: string;
   parameters: string;
-  status: string;
+  status: ProgramStatus;
   created_by: string;
   created_at: string;
   updated_at: string;
-  progress: { total: number; inspected: number; qualified: number; unqualified: number; pending: number };
+  progress: ProgramProgress;
 }
 
 export const api = {

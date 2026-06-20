@@ -6,12 +6,13 @@ interface WeldRow {
   weld_no: string;
   batch_id: number;
   status: string;
+  created_at: string;
 }
 
 function getProgramWelds(programId: number): WeldRow[] {
   return db
     .prepare(
-      `SELECT tw.id, tw.weld_no, tw.batch_id, tw.status
+      `SELECT tw.id, tw.weld_no, tw.batch_id, tw.status, tw.created_at
        FROM trial_welds tw
        JOIN trial_batches tb ON tw.batch_id = tb.id
        WHERE tb.program_id = ?`

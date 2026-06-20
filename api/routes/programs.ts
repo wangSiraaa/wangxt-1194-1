@@ -9,6 +9,11 @@ import type {
   WeldingProgram,
   ProgramDetail,
   ProgramProgress,
+  TrialBatch,
+  TrialWeld,
+  QualityResult,
+  ReleaseRecord,
+  WeldStatus,
 } from '../../shared/types.js';
 
 const router = Router();
@@ -44,19 +49,26 @@ router.get('/:id', (req: Request, res: Response): void => {
   }
   const batches = db
     .prepare('SELECT * FROM trial_batches WHERE program_id = ? ORDER BY id')
-    .all(id);
-  const welds = getProgramWelds(id);
+    .all(id) as TrialBatch[];
+  const weldRows = getProgramWelds(id);
+  const welds: TrialWeld[] = weldRows.map((w) => ({
+    id: w.id,
+    weld_no: w.weld_no,
+    batch_id: w.batch_id,
+    status: w.status as WeldStatus,
+    created_at: w.created_at,
+  }));
   const weldIds = welds.map((w) => w.id);
   const results = weldIds.length
     ? db
         .prepare(
           `SELECT * FROM quality_results WHERE weld_id IN (${weldIds.map(() => '?').join(',')})`
         )
-        .all(...weldIds)
-    : [];
+        .all(...weldIds) as QualityResult[]
+    : [] as QualityResult[];
   const releases = db
     .prepare('SELECT * FROM release_records WHERE program_id = ? ORDER BY id')
-    .all(id);
+    .all(id) as ReleaseRecord[];
   const detail: ProgramDetail = {
     ...program,
     batches,
