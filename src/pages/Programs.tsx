@@ -4,8 +4,8 @@ import { useAppStore } from '@/store/useAppStore';
 import StatusBadge from '@/components/StatusBadge';
 import ProgressBar from '@/components/ProgressBar';
 import Modal from '@/components/Modal';
-import { APPEARANCE_GRADE, WELD_STATUS } from '@/lib/constants';
-import type { ProgramStatus } from '../../shared/types';
+import { APPEARANCE_GRADE, WELD_STATUS, REPAIR_CONCLUSION } from '@/lib/constants';
+import type { ProgramStatus, ImpactScope, VersionLineageItem } from '../../shared/types';
 import {
   Plus,
   Eye,
@@ -14,6 +14,8 @@ import {
   Rocket,
   Trash2,
   Factory,
+  Archive,
+  RotateCcw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,11 +29,15 @@ interface ProgramDetail {
   created_by: string;
   created_at: string;
   updated_at: string;
+  retired_at: string | null;
+  retired_by: string | null;
   batches: any[];
   welds: any[];
   results: any[];
   releases: any[];
   progress: { total: number; inspected: number; qualified: number; unqualified: number; pending: number };
+  impact_scope: ImpactScope | null;
+  version_lineage: VersionLineageItem[];
 }
 
 const EMPTY_FORM = { program_code: '', version: '', name: '', parameters: '' };
@@ -212,8 +218,23 @@ export default function Programs() {
                       </button>
                     )}
                     {isProc && p.status === 'published' && (
-                      <button title="标记量产" className={cn(btn, 'hover:border-orange-500/50 hover:text-orange-300')} onClick={() => act(() => api.markProduction(p.id), '已标记量产', refreshDetail)}>
-                        <Factory size={15} />
+                      <>
+                        <button title="标记量产" className={cn(btn, 'hover:border-orange-500/50 hover:text-orange-300')} onClick={() => act(() => api.markProduction(p.id), '已标记量产', refreshDetail)}>
+                          <Factory size={15} />
+                        </button>
+                        <button title="退役" className={cn(btn, 'hover:border-zinc-500/50 hover:text-zinc-300')} onClick={() => act(() => api.retireProgram(p.id), '已退役', refreshDetail)}>
+                          <Archive size={15} />
+                        </button>
+                      </>
+                    )}
+                    {isProc && p.status === 'in_production' && (
+                      <button title="退役" className={cn(btn, 'hover:border-zinc-500/50 hover:text-zinc-300')} onClick={() => act(() => api.retireProgram(p.id), '已退役', refreshDetail)}>
+                        <Archive size={15} />
+                      </button>
+                    )}
+                    {isProc && p.status === 'retired' && (
+                      <button title="回滚为量产版本" className={cn(btn, 'hover:border-orange-500/50 hover:text-orange-300')} onClick={() => act(() => api.rollbackProgram(p.id), '已回滚', refreshDetail)}>
+                        <RotateCcw size={15} />
                       </button>
                     )}
                   </div>
@@ -231,7 +252,14 @@ export default function Programs() {
 
       {/* 详情弹窗 */}
       <Modal open={!!detail} onClose={() => setDetail(null)} title="程序版本详情" size="xl">
-        {detail && <DetailBody detail={detail} />}
+        {detail && (
+          <DetailBody
+            detail={detail}
+            role={role}
+            onRetire={() => act(() => api.retireProgram(detail.id), '已退役', refreshDetail)}
+            onRollback={() => act(() => api.rollbackProgram(detail.id), '已回滚', refreshDetail)}
+          />
+        )}
       </Modal>
 
       {/* 新建/编辑表单 */}
@@ -281,9 +309,23 @@ export default function Programs() {
   );
 }
 
-function DetailBody({ detail }: { detail: ProgramDetail }) {
+function DetailBody({
+  detail,
+  role,
+  onRetire,
+  onRollback,
+}: {
+  detail: ProgramDetail;
+  role: string;
+  onRetire: () => void;
+  onRollback: () => void;
+}) {
   const params = parseParams(detail.parameters);
   const resultByWeld = new Map(detail.results.map((r) => [r.weld_id, r]));
+  const isProc = role === 'process_engineer';
+  const canRetire = isProc && (detail.status === 'published' || detail.status === 'in_production');
+  const canRollback = isProc && detail.status === 'retired';
+  const scope = detail.impact_scope;
 
   return (
     <div className="space-y-5">
@@ -292,6 +334,18 @@ function DetailBody({ detail }: { detail: ProgramDetail }) {
         <span className="font-mono text-zinc-300">{detail.version}</span>
         <StatusBadge status={detail.status} />
         <span className="text-sm text-zinc-400">{detail.name}</span>
+        <div className="ml-auto flex gap-2">
+          {canRetire && (
+            <button className="btn btn-ghost" onClick={onRetire}>
+              <Archive size={14} /> 退役
+            </button>
+          )}
+          {canRollback && (
+            <button className="btn btn-ghost" onClick={onRollback}>
+              <RotateCcw size={14} /> 回滚为量产
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-x-6 gap-y-2 rounded-lg border border-steel-700/50 bg-steel-900/30 p-4 text-sm md:grid-cols-4">
@@ -299,6 +353,8 @@ function DetailBody({ detail }: { detail: ProgramDetail }) {
         <Info label="创建时间" value={detail.created_at} mono />
         <Info label="更新时间" value={detail.updated_at} mono />
         <Info label="试焊件" value={`${detail.progress.total} 件`} />
+        {detail.retired_at && <Info label="退役时间" value={detail.retired_at} mono />}
+        {detail.retired_by && <Info label="退役人" value={detail.retired_by} />}
       </div>
 
       <div>
@@ -347,6 +403,7 @@ function DetailBody({ detail }: { detail: ProgramDetail }) {
                         <th className="px-3 py-1.5 font-medium">状态</th>
                         <th className="px-3 py-1.5 font-medium">拉力(N)</th>
                         <th className="px-3 py-1.5 font-medium">外观</th>
+                        <th className="px-3 py-1.5 font-medium">返修结论</th>
                         <th className="px-3 py-1.5 font-medium">检测人</th>
                       </tr>
                     </thead>
@@ -355,6 +412,7 @@ function DetailBody({ detail }: { detail: ProgramDetail }) {
                         const r = resultByWeld.get(w.id);
                         const ws = WELD_STATUS[w.status as keyof typeof WELD_STATUS];
                         const ap = r?.appearance_grade ? APPEARANCE_GRADE[r.appearance_grade as keyof typeof APPEARANCE_GRADE] : null;
+                        const rc = r?.repair_conclusion ? REPAIR_CONCLUSION[r.repair_conclusion as keyof typeof REPAIR_CONCLUSION] : null;
                         return (
                           <tr key={w.id} className="border-t border-steel-800/60">
                             <td className="px-3 py-1.5 font-mono text-zinc-300">{w.weld_no}</td>
@@ -363,6 +421,7 @@ function DetailBody({ detail }: { detail: ProgramDetail }) {
                             </td>
                             <td className="px-3 py-1.5 font-mono text-zinc-300">{r?.tensile_strength ?? '—'}</td>
                             <td className={cn('px-3 py-1.5', ap?.cls)}>{ap?.label ?? '—'}</td>
+                            <td className={cn('px-3 py-1.5', rc?.cls)}>{rc?.label ?? '—'}</td>
                             <td className="px-3 py-1.5 text-zinc-500">{r?.inspected_by ?? '—'}</td>
                           </tr>
                         );
@@ -379,6 +438,109 @@ function DetailBody({ detail }: { detail: ProgramDetail }) {
           </div>
         )}
       </div>
+
+      {scope && scope.counts && (scope.counts.workstations > 0 || scope.counts.orders > 0 || scope.counts.welds > 0) && (
+        <div>
+          <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500">
+            量产影响范围
+            <span className="ml-2 text-zinc-600">
+              {scope.counts.workstations} 工位 · {scope.counts.orders} 订单 · {scope.counts.welds} 焊缝
+            </span>
+          </h4>
+          <div className="space-y-3">
+            {scope.workstations.length > 0 && (
+              <div className="rounded-lg border border-steel-700/50 bg-steel-900/30 p-3">
+                <div className="mb-2 text-[10px] uppercase tracking-wider text-zinc-500">关联工位</div>
+                <div className="flex flex-wrap gap-2">
+                  {scope.workstations.map((ws) => (
+                    <span key={ws.id} className="rounded border border-steel-700/50 bg-steel-800/50 px-2 py-1 text-xs">
+                      <span className="font-mono text-zinc-300">{ws.code}</span>
+                      <span className="ml-1 text-zinc-400">{ws.name}</span>
+                      {ws.line && <span className="ml-1 text-zinc-600">{ws.line}</span>}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {scope.orders.length > 0 && (
+              <div className="rounded-lg border border-steel-700/50 bg-steel-900/30 p-3">
+                <div className="mb-2 text-[10px] uppercase tracking-wider text-zinc-500">受影响订单</div>
+                <table className="w-full text-xs">
+                  <thead className="text-left text-zinc-500">
+                    <tr>
+                      <th className="px-2 py-1 font-medium">订单号</th>
+                      <th className="px-2 py-1 font-medium">产品</th>
+                      <th className="px-2 py-1 font-medium">工位</th>
+                      <th className="px-2 py-1 font-medium">状态</th>
+                      <th className="px-2 py-1 font-medium">数量</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {scope.orders.map((o) => (
+                      <tr key={o.id} className="border-t border-steel-800/60">
+                        <td className="px-2 py-1.5 font-mono text-zinc-300">{o.order_no}</td>
+                        <td className="px-2 py-1.5 text-zinc-400">{o.product_name}</td>
+                        <td className="px-2 py-1.5 text-zinc-400">{o.workstation?.name ?? '—'}</td>
+                        <td className="px-2 py-1.5 text-zinc-400">{o.status}</td>
+                        <td className="px-2 py-1.5 font-mono text-zinc-300">{o.quantity}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {scope.welds.length > 0 && (
+              <div className="rounded-lg border border-steel-700/50 bg-steel-900/30 p-3">
+                <div className="mb-2 text-[10px] uppercase tracking-wider text-zinc-500">受影响焊缝</div>
+                <table className="w-full text-xs">
+                  <thead className="text-left text-zinc-500">
+                    <tr>
+                      <th className="px-2 py-1 font-medium">焊缝编号</th>
+                      <th className="px-2 py-1 font-medium">位置</th>
+                      <th className="px-2 py-1 font-medium">订单</th>
+                      <th className="px-2 py-1 font-medium">状态</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {scope.welds.map((w) => (
+                      <tr key={w.id} className="border-t border-steel-800/60">
+                        <td className="px-2 py-1.5 font-mono text-zinc-300">{w.weld_no}</td>
+                        <td className="px-2 py-1.5 text-zinc-400">{w.workstation?.name ?? '—'}</td>
+                        <td className="px-2 py-1.5 text-zinc-400">{w.order?.order_no ?? '—'}</td>
+                        <td className="px-2 py-1.5 text-zinc-400">{w.status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {detail.version_lineage.length > 1 && (
+        <div>
+          <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500">版本血缘</h4>
+          <div className="flex flex-wrap items-center gap-2">
+            {detail.version_lineage.map((v, i) => (
+              <div key={v.id} className="flex items-center gap-2">
+                {i > 0 && <span className="text-zinc-600">→</span>}
+                <div className={cn(
+                  'rounded border px-2 py-1 text-xs',
+                  v.is_current
+                    ? 'border-orange-500/40 bg-orange-500/10 text-orange-300'
+                    : 'border-steel-700/50 bg-steel-800/50 text-zinc-400'
+                )}>
+                  <span className="font-mono">{v.version}</span>
+                  <span className="ml-1 text-[10px]">
+                    {v.is_current ? '在产' : v.status === 'retired' ? '已退役' : v.status === 'published' ? '已发布' : v.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {detail.releases.length > 0 && (
         <div>

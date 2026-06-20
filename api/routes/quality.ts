@@ -34,7 +34,7 @@ router.get('/pending', (_req: Request, res: Response): void => {
 });
 
 router.post('/', (req: Request, res: Response): void => {
-  const { weld_id, tensile_strength, appearance_grade, result, remark } = req.body;
+  const { weld_id, tensile_strength, appearance_grade, result, repair_conclusion, remark } = req.body;
   if (!weld_id || !result) {
     res.status(400).json({ success: false, error: '缺少试焊件或检测结论' });
     return;
@@ -54,12 +54,12 @@ router.post('/', (req: Request, res: Response): void => {
     const exist = db.prepare('SELECT id FROM quality_results WHERE weld_id=?').get(weld_id);
     if (exist) {
       db.prepare(
-        "UPDATE quality_results SET tensile_strength=?, appearance_grade=?, result=?, inspected_by=?, remark=?, inspected_at=datetime('now','localtime') WHERE weld_id=?"
-      ).run(tensile_strength, appearance_grade, result, operator(req), remark || '', weld_id);
+        "UPDATE quality_results SET tensile_strength=?, appearance_grade=?, result=?, repair_conclusion=?, inspected_by=?, remark=?, inspected_at=datetime('now','localtime') WHERE weld_id=?"
+      ).run(tensile_strength, appearance_grade, result, repair_conclusion || null, operator(req), remark || '', weld_id);
     } else {
       db.prepare(
-        'INSERT INTO quality_results (weld_id, tensile_strength, appearance_grade, result, inspected_by, remark) VALUES (?,?,?,?,?,?)'
-      ).run(weld_id, tensile_strength, appearance_grade, result, operator(req), remark || '');
+        'INSERT INTO quality_results (weld_id, tensile_strength, appearance_grade, result, repair_conclusion, inspected_by, remark) VALUES (?,?,?,?,?,?,?)'
+      ).run(weld_id, tensile_strength, appearance_grade, result, repair_conclusion || null, operator(req), remark || '');
     }
     const pending = (
       db

@@ -135,9 +135,9 @@ export default function Dashboard() {
           })}
         </div>
         <p className="mt-4 border-t border-steel-800 pt-3 text-xs leading-relaxed text-zinc-500">
-          流转:草稿 → 待试焊 → 试焊中 → 待发布 → 已发布 → 已量产。
+          流转:草稿 → 待试焊 → 试焊中 → 待发布 → 已发布 → 已量产 → 退役。
           <span className="text-red-400/80">
-            质量不合格将锁定该版本,已量产程序不可删除。
+            质量不合格将锁定该版本,已量产或退役程序不可删除,仅可退役或回滚。
           </span>
         </p>
       </div>

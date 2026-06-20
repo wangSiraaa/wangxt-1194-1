@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { useAppStore } from '@/store/useAppStore';
 import Modal from '@/components/Modal';
-import { APPEARANCE_GRADE } from '@/lib/constants';
+import { APPEARANCE_GRADE, REPAIR_CONCLUSION } from '@/lib/constants';
 import { ClipboardCheck, FlaskConical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +22,7 @@ const EMPTY = {
   tensile_strength: '',
   appearance_grade: 'pass',
   result: 'qualified',
+  repair_conclusion: 'no_repair',
   remark: '',
 };
 
@@ -62,6 +63,7 @@ export default function Quality() {
         tensile_strength: Number(form.tensile_strength),
         appearance_grade: form.appearance_grade,
         result: form.result,
+        repair_conclusion: form.repair_conclusion,
         remark: form.remark,
       });
       showToast(
@@ -208,6 +210,20 @@ export default function Quality() {
                 不合格将触发质量门禁,该程序版本会被自动锁定,无法发布
               </p>
             )}
+          </div>
+          <div>
+            <label className="label">返修结论</label>
+            <select
+              className="input"
+              value={form.repair_conclusion}
+              onChange={(e) => setForm({ ...form, repair_conclusion: e.target.value })}
+            >
+              {(Object.keys(REPAIR_CONCLUSION) as (keyof typeof REPAIR_CONCLUSION)[]).map((k) => (
+                <option key={k} value={k}>
+                  {REPAIR_CONCLUSION[k].label}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="label">备注</label>

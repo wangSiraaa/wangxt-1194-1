@@ -3,7 +3,14 @@ import db from '../db.js';
 import {
   canPublish,
   canDelete,
+  canRetire,
+  canRollback,
   getProgramWelds,
+  getImpactScope,
+  getVersionLineage,
+  retireProgram,
+  rollbackProgram,
+  autoRetirePreviousProduction,
 } from '../services/ruleService.js';
 import type {
   WeldingProgram,
@@ -86,6 +93,8 @@ router.get('/:id', (req: Request, res: Response): void => {
     results,
     releases,
     progress: buildProgress(welds),
+    impact_scope: getImpactScope(program.program_code),
+    version_lineage: getVersionLineage(id),
   };
   res.json({ success: true, data: detail });
 });
@@ -186,8 +195,8 @@ router.post('/:id/publish', (req: Request, res: Response): void => {
 router.post('/:id/mark-production', (req: Request, res: Response): void => {
   const id = Number(req.params.id);
   const program = db
-    .prepare('SELECT status FROM welding_programs WHERE id = ?')
-    .get(id) as { status: string } | undefined;
+    .prepare('SELECT status, program_code FROM welding_programs WHERE id = ?')
+    .get(id) as { status: string; program_code: string } | undefined;
   if (!program) {
     res.status(404).json({ success: false, error: '程序不存在' });
     return;
@@ -196,13 +205,49 @@ router.post('/:id/mark-production', (req: Request, res: Response): void => {
     res.status(400).json({ success: false, error: '仅已发布程序可标记量产' });
     return;
   }
+  const op = operator(req);
   db.transaction(() => {
+    autoRetirePreviousProduction(program.program_code, id, op);
     db.prepare(
       "UPDATE welding_programs SET status='in_production', updated_at=datetime('now','localtime') WHERE id=?"
     ).run(id);
     db.prepare('UPDATE release_records SET in_production=1 WHERE program_id=?').run(id);
   })();
   res.json({ success: true });
+});
+
+router.post('/:id/retire', (req: Request, res: Response): void => {
+  const id = Number(req.params.id);
+  const check = canRetire(id);
+  if (!check.ok) {
+    res.status(400).json({ success: false, error: check.reason });
+    return;
+  }
+  retireProgram(id, operator(req));
+  res.json({ success: true });
+});
+
+router.post('/:id/rollback', (req: Request, res: Response): void => {
+  const id = Number(req.params.id);
+  const check = canRollback(id);
+  if (!check.ok) {
+    res.status(400).json({ success: false, error: check.reason });
+    return;
+  }
+  const { program_code } = rollbackProgram(id, operator(req));
+  res.json({ success: true, data: { program_code } });
+});
+
+router.get('/:id/impact-scope', (req: Request, res: Response): void => {
+  const id = Number(req.params.id);
+  const program = db
+    .prepare('SELECT program_code FROM welding_programs WHERE id = ?')
+    .get(id) as { program_code: string } | undefined;
+  if (!program) {
+    res.status(404).json({ success: false, error: '程序不存在' });
+    return;
+  }
+  res.json({ success: true, data: getImpactScope(program.program_code) });
 });
 
 export default router;

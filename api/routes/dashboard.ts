@@ -15,6 +15,7 @@ router.get('/stats', (_req: Request, res: Response): void => {
     published: 0,
     locked: 0,
     in_production: 0,
+    retired: 0,
   };
   for (const r of rows) stats[r.status] = r.c;
   const total = rows.reduce((s, r) => s + r.c, 0);

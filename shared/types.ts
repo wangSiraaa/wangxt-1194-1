@@ -7,12 +7,22 @@ export type ProgramStatus =
   | 'ready_to_publish'
   | 'published'
   | 'locked'
-  | 'in_production';
+  | 'in_production'
+  | 'retired';
 
 export type BatchStatus = 'pending' | 'trialing' | 'completed';
 export type WeldStatus = 'pending' | 'qualified' | 'unqualified';
 export type AppearanceGrade = 'pass' | 'marginal' | 'fail';
 export type QualityResultValue = 'qualified' | 'unqualified';
+export type RepairConclusion =
+  | 'no_repair'
+  | 'need_repair'
+  | 'repaired_pass'
+  | 'repaired_fail'
+  | 'scrap';
+
+export type ProductionOrderStatus = 'in_progress' | 'completed';
+export type ProductionWeldStatus = 'pending' | 'completed';
 
 export type Role = 'process_engineer' | 'line_leader' | 'quality_engineer';
 
@@ -39,6 +49,8 @@ export interface WeldingProgram {
   created_by: string;
   created_at: string;
   updated_at: string;
+  retired_at: string | null;
+  retired_by: string | null;
 }
 
 export interface TrialBatch {
@@ -65,6 +77,7 @@ export interface QualityResult {
   tensile_strength: number;
   appearance_grade: AppearanceGrade;
   result: QualityResultValue;
+  repair_conclusion: RepairConclusion | null;
   inspected_by: string;
   remark: string;
   inspected_at: string;
@@ -92,6 +105,54 @@ export interface ProgramDetail extends WeldingProgram {
   results: QualityResult[];
   releases: ReleaseRecord[];
   progress: ProgramProgress;
+  impact_scope: ImpactScope | null;
+  version_lineage: VersionLineageItem[];
+}
+
+export interface Workstation {
+  id: number;
+  code: string;
+  name: string;
+  line: string;
+  program_code: string;
+  created_at: string;
+}
+
+export interface ProductionOrder {
+  id: number;
+  order_no: string;
+  product_name: string;
+  workstation_id: number;
+  program_code: string;
+  quantity: number;
+  status: ProductionOrderStatus;
+  created_at: string;
+}
+
+export interface ProductionWeld {
+  id: number;
+  order_id: number;
+  workstation_id: number;
+  program_code: string;
+  weld_no: string;
+  status: ProductionWeldStatus;
+  created_at: string;
+}
+
+export interface ImpactScope {
+  workstations: Workstation[];
+  orders: (ProductionOrder & { workstation?: Workstation })[];
+  welds: (ProductionWeld & { order?: ProductionOrder; workstation?: Workstation })[];
+  counts: { workstations: number; orders: number; welds: number };
+}
+
+export interface VersionLineageItem {
+  id: number;
+  version: string;
+  status: ProgramStatus;
+  created_at: string;
+  retired_at: string | null;
+  is_current: boolean;
 }
 
 export interface DashboardStats {
@@ -102,5 +163,6 @@ export interface DashboardStats {
   published: number;
   locked: number;
   in_production: number;
+  retired: number;
   total: number;
 }

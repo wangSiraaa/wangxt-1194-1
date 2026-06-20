@@ -5,6 +5,7 @@ import {
   type AppearanceGrade,
   type WeldStatus,
   type BatchStatus,
+  type RepairConclusion,
 } from '../../shared/types';
 
 export const ROLES: { key: Role; label: string; short: string; desc: string }[] = [
@@ -30,6 +31,7 @@ export const PROGRAM_STATUS: Record<ProgramStatus, StatusMeta> = {
   published: { label: '已发布', badge: 'text-green-300 bg-green-600/10 border-green-600/40', dot: 'bg-green-500', ring: 'ring-green-500/30' },
   locked: { label: '已锁定', badge: 'text-red-300 bg-red-600/10 border-red-600/40', dot: 'bg-red-500', ring: 'ring-red-500/30' },
   in_production: { label: '已量产', badge: 'text-orange-300 bg-orange-500/10 border-orange-500/40', dot: 'bg-orange-400', ring: 'ring-orange-400/30' },
+  retired: { label: '已退役', badge: 'text-zinc-400 bg-zinc-600/10 border-zinc-500/40', dot: 'bg-zinc-500', ring: 'ring-zinc-500/30' },
 };
 
 export const BATCH_STATUS: Record<BatchStatus, string> = {
@@ -50,6 +52,14 @@ export const APPEARANCE_GRADE: Record<AppearanceGrade, { label: string; cls: str
   fail: { label: '不合格', cls: 'text-red-300' },
 };
 
+export const REPAIR_CONCLUSION: Record<RepairConclusion, { label: string; cls: string }> = {
+  no_repair: { label: '无需返修', cls: 'text-green-300' },
+  need_repair: { label: '需返修', cls: 'text-amber-300' },
+  repaired_pass: { label: '返修后合格', cls: 'text-sky-300' },
+  repaired_fail: { label: '返修后不合格', cls: 'text-red-300' },
+  scrap: { label: '报废', cls: 'text-red-400' },
+};
+
 export const STATUS_FLOW: ProgramStatus[] = [
   'draft',
   'pending_trial',
@@ -57,4 +67,5 @@ export const STATUS_FLOW: ProgramStatus[] = [
   'ready_to_publish',
   'published',
   'in_production',
+  'retired',
 ];

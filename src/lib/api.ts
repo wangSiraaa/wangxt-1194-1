@@ -52,6 +52,9 @@ export const api = {
   deleteProgram: (id: number) => request(`/programs/${id}`, { method: 'DELETE' }),
   publishProgram: (id: number) => request(`/programs/${id}/publish`, { method: 'POST' }),
   markProduction: (id: number) => request(`/programs/${id}/mark-production`, { method: 'POST' }),
+  retireProgram: (id: number) => request(`/programs/${id}/retire`, { method: 'POST' }),
+  rollbackProgram: (id: number) => request(`/programs/${id}/rollback`, { method: 'POST' }),
+  getImpactScope: (id: number) => request(`/programs/${id}/impact-scope`).then((r) => (r as any).data),
   getBatches: (programId?: number) =>
     request('/trial-batches' + (programId ? `?program_id=${programId}` : '')).then((r) => (r as any).data),
   createBatch: (body: any) =>
